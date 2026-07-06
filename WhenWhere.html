@@ -757,7 +757,7 @@ function renderLocationScreen(){
     <div class="card">
       <div class="sub" style="margin-bottom:10px;">주소를 검색하거나 지도를 클릭해서 출발 위치를 표시해주세요.</div>
       <div class="row" style="margin-bottom:10px;">
-        <input type="text" id="addrInput" placeholder="예: 강남역, 제주시청" style="margin-bottom:0;">
+        <input type="text" id="addrInput" placeholder="예: 강남역" style="margin-bottom:0;">
         <button class="btn-ghost" id="addrSearchBtn" style="flex:none; width:64px;">검색</button>
       </div>
       <div class="map-box" id="mapBox" style="aspect-ratio:auto; height:260px; cursor:default;"></div>
@@ -849,18 +849,29 @@ async function setupLocationMap(){
   document.getElementById('addrSearchBtn').onclick = ()=>{
     const q = document.getElementById('addrInput').value.trim();
     if(!q) return;
-    const geocoder = new kakao.maps.services.Geocoder();
-    geocoder.addressSearch(q, (result, status)=>{
-      if(status === kakao.maps.services.Status.OK){
-        const lat = parseFloat(result[0].y), lng = parseFloat(result[0].x);
-        const latlng = new kakao.maps.LatLng(lat, lng);
-        map.setCenter(latlng);
-        myMarker.setPosition(latlng);
-        myMarker.setMap(map);
-        pendingLatLng = {lat, lng};
-      } else {
-        alert('주소를 찾을 수 없어요. 다른 키워드로 시도해보세요 (예: 동/역 이름, 건물명 등)');
+    const applyResult = (lat, lng)=>{
+      const latlng = new kakao.maps.LatLng(lat, lng);
+      map.setCenter(latlng);
+      myMarker.setPosition(latlng);
+      myMarker.setMap(map);
+      pendingLatLng = {lat, lng};
+    };
+    // 1) 장소/건물/역 이름 검색 (예: 강남역, 제주시청)
+    const places = new kakao.maps.services.Places();
+    places.keywordSearch(q, (result, status)=>{
+      if(status === kakao.maps.services.Status.OK && result.length>0){
+        applyResult(parseFloat(result[0].y), parseFloat(result[0].x));
+        return;
       }
+      // 2) 실패하면 정확한 지번/도로명 주소 검색으로 재시도
+      const geocoder = new kakao.maps.services.Geocoder();
+      geocoder.addressSearch(q, (result2, status2)=>{
+        if(status2 === kakao.maps.services.Status.OK && result2.length>0){
+          applyResult(parseFloat(result2[0].y), parseFloat(result2[0].x));
+        } else {
+          alert('검색 결과가 없어요. 다른 키워드로 시도해보세요 (예: 역 이름, 건물명, 동 이름 등)');
+        }
+      });
     });
   };
 }
