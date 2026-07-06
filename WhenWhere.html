@@ -310,7 +310,7 @@ let kakaoLoadPromise = null;
 function loadKakaoMaps(){
   if(kakaoLoadPromise) return kakaoLoadPromise;
   kakaoLoadPromise = new Promise((resolve, reject)=>{
-    if(!KAKAO_APP_KEY || KAKAO_APP_KEY === "YOUR_KAKAO_JS_KEY"){ reject(new Error('no-key')); return; }
+    if(!KAKAO_APP_KEY || KAKAO_APP_KEY === "4ea1b132f1d0e69b65afd7a401a87192"){ reject(new Error('no-key')); return; }
     if(window.kakao && window.kakao.maps){ resolve(); return; }
     const script = document.createElement('script');
     script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&libraries=services&autoload=false`;
