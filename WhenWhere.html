@@ -310,7 +310,7 @@ let kakaoLoadPromise = null;
 function loadKakaoMaps(){
   if(kakaoLoadPromise) return kakaoLoadPromise;
   kakaoLoadPromise = new Promise((resolve, reject)=>{
-    if(!KAKAO_APP_KEY || KAKAO_APP_KEY === "4ea1b132f1d0e69b65afd7a401a87192"){ reject(new Error('no-key')); return; }
+    if(!KAKAO_APP_KEY || KAKAO_APP_KEY === "YOUR_KAKAO_JS_KEY"){ reject(new Error('no-key')); return; }
     if(window.kakao && window.kakao.maps){ resolve(); return; }
     const script = document.createElement('script');
     script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&libraries=services&autoload=false`;
@@ -811,7 +811,10 @@ async function setupLocationMap(){
   try{
     await loadKakaoMaps();
   }catch(e){
-    container.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--text-dim);">카카오맵 키가 설정되지 않았어요. 파일 상단 KAKAO_APP_KEY를 채워주세요.</div>`;
+    const msg = e.message === 'no-key'
+      ? '카카오맵 키가 설정되지 않았어요. 파일 상단 KAKAO_APP_KEY를 채워주세요.'
+      : '카카오맵 로딩에 실패했어요. 브라우저 개발자도구(F12) → Console 탭에 뜨는 에러 메시지를 확인해주세요 (보통 도메인 등록 문제예요).';
+    container.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--text-dim);">${msg}</div>`;
     return;
   }
   if(!document.getElementById('mapBox')) return; // 그 사이 화면이 바뀌었으면 중단
@@ -908,7 +911,10 @@ async function setupResultMap(){
   try{
     await loadKakaoMaps();
   }catch(e){
-    container.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--text-dim);">카카오맵 키가 설정되지 않았어요.</div>`;
+    const msg = e.message === 'no-key'
+      ? '카카오맵 키가 설정되지 않았어요.'
+      : '카카오맵 로딩에 실패했어요. 개발자도구(F12) → Console에서 에러를 확인해주세요.';
+    container.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--text-dim);">${msg}</div>`;
     return;
   }
   if(!document.getElementById('resultMapBox')) return;
