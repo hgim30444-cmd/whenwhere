@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WhenWhere</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WhenWhere">
+<meta name="theme-color" content="#FBF5E7">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Baloo+2:wght@500;700;800&family=Gaegu:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FBF5E7;
+    --bg-soft: #FFFDF6;
+    --card: #FFFCF3;
+    --line: #EDE1C4;
+    --text: #4A3F35;
+    --text-dim: #A8988A;
+    --mint: #8FC9A9;
+    --coral: #E2665A;
+    --yellow: #FFD97A;
+    --sky: #AEE3F0;
+    --pink: #F6B8CB;
+    --radius: 16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,sans-serif;
+    min-height:100vh;
+    padding: 24px 16px 60px;
+    position:relative;
+  }
+  .stars-decor{position:fixed; inset:0; pointer-events:none; z-index:0;}
+  .home-btn{
+    position:fixed; top:14px; right:14px; z-index:30;
+    background:var(--card); border:1px solid var(--line); border-radius:999px;
+    padding:8px 14px; font-size:12px; font-weight:700; color:var(--text-dim);
+    box-shadow:0 2px 10px rgba(74,63,53,.1); display:none;
+  }
+  .home-btn:hover{color:var(--coral); border-color:var(--coral);}
+  .stars-decor .star{position:absolute; font-size:22px; line-height:1;}
+  .stars-decor .s1{top:16px; left:12px; color:var(--pink); opacity:.85; transform:rotate(-12deg);}
+  .stars-decor .s2{top:34px; right:18px; color:var(--sky); opacity:.75; transform:rotate(14deg); font-size:18px;}
+  .stars-decor .s3{bottom:26px; left:22px; color:var(--yellow); opacity:.7; transform:rotate(8deg);}
+  .stars-decor .s4{bottom:54px; right:14px; color:var(--coral); opacity:.6; transform:rotate(-18deg); font-size:18px;}
+  .wrap{max-width:520px;margin:0 auto; position:relative; z-index:1;}
+  .eyebrow{
+    display:inline-block; font-family:'Jua',sans-serif; font-size:11px; letter-spacing:.06em;
+    color:#7a3f2c; background:var(--pink); padding:4px 12px; border-radius:999px; margin-bottom:10px;
+  }
+  h1{
+    font-family:'Jua',sans-serif; font-size:27px; margin:0 0 4px; font-weight:400; letter-spacing:-.01em;
+    color:var(--text);
+  }
+  .sub{color:var(--text-dim); font-size:14px; margin-bottom:22px;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:20px; margin-bottom:16px; box-shadow:0 2px 10px rgba(74,63,53,.05);
+  }
+  .steps{display:flex; gap:6px; margin-bottom:22px;}
+  .steps .dot{flex:1; height:4px; border-radius:2px; background:var(--line);}
+  .steps .dot.done{background:var(--mint);}
+  .steps .dot.active{background:var(--coral);}
+  label{display:block; font-size:13px; color:var(--text-dim); margin-bottom:6px; font-weight:600;}
+  input[type=text]{
+    width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--line);
+    background:var(--bg-soft); color:var(--text); font-size:15px; margin-bottom:14px;
+  }
+  input[type=text]:focus{outline:none; border-color:var(--mint);}
+  button{
+    font-family:inherit; cursor:pointer; border:none; border-radius:10px;
+    padding:12px 16px; font-size:14px; font-weight:700; transition:transform .1s ease;
+  }
+  button:active{transform:scale(.97);}
+  .btn-primary{background:var(--mint); color:var(--text); width:100%;}
+  .btn-ghost{background:transparent; color:var(--text-dim); border:1px solid var(--line);}
+  .btn-ghost.mode-on{background:rgba(143,201,169,.2); color:#2f6b4d; border-color:var(--mint); font-weight:800;}
+  .btn-coral{background:var(--coral); color:#fff;}
+  .btn-yellow{background:var(--yellow); color:var(--text);}
+  .btn-small{padding:8px 12px; font-size:12px;}
+  .row{display:flex; gap:8px;}
+  .row > *{flex:1;}
+  .room-code{
+    font-family:'Jua',sans-serif; font-size:28px; letter-spacing:.12em; color:#8a5b12;
+    text-align:center; padding:14px; background:var(--yellow); border-radius:12px; margin-bottom:14px;
+  }
+  .banner{
+    padding:12px 16px; border-radius:12px; font-size:13px; font-weight:700; margin-bottom:16px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .banner.decided{background:rgba(143,201,169,.2); color:#2f6b4d; border:1px solid var(--mint);}
+  .banner.pending{background:rgba(226,102,90,.15); color:var(--coral); border:1px solid var(--coral);}
+  .cal-month-nav{display:flex; align-items:center; justify-content:space-between; margin:14px 0 8px;}
+  .cal-month{font-family:'Jua',sans-serif; font-size:16px; color:var(--coral);}
+  .cal-month-nav .cal-month{margin:0;}
+  .nav-arrow{
+    background:var(--bg-soft); border:1px solid var(--line); color:var(--text);
+    width:32px; height:32px; border-radius:8px; font-size:16px; padding:0; line-height:1;
+  }
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px;}
+  .cal-dow{text-align:center; font-size:10px; letter-spacing:.08em; color:var(--text-dim); padding-bottom:4px; font-weight:700;}
+  .cal-day{
+    min-height:66px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding:6px 3px 5px; border-radius:10px; background:var(--bg-soft); border:1px solid var(--line); font-size:13px;
+    cursor:pointer; position:relative; color:var(--text); gap:3px;
+  }
+  .cal-day.empty{background:transparent; border-color:transparent; cursor:default;}
+  .cal-day.selected{
+    border:2px solid var(--coral);
+    box-shadow: inset 0 0 0 1px rgba(226,102,90,.25);
+  }
+  .cal-day.selected::after{
+    content:"✓"; position:absolute; top:3px; right:5px; font-size:10px; font-weight:900; color:var(--coral);
+  }
+  .cal-day .mychips{display:flex; flex-wrap:wrap; gap:2px; justify-content:center;}
+  .cal-day .mychip{
+    font-size:9px; font-weight:800; padding:1px 4px; border-radius:5px; background:var(--coral); color:#fff; line-height:1.4;
+  }
+  .cal-day.best{outline:2px solid var(--yellow);}
+  .cal-legend{display:flex; gap:14px; font-size:11px; color:var(--text-dim); margin:4px 0 12px; flex-wrap:wrap;}
+  .cal-legend span{display:inline-flex; align-items:center; gap:4px;}
+  .legend-dot{width:8px; height:8px; border-radius:50%; display:inline-block;}
+  .legend-swatch{width:14px; height:8px; border-radius:3px; display:inline-block;}
+  .avatar-row{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 2px;}
+  .avatar-bubble{
+    width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800; color:#4a3f35; border:2px solid var(--card); box-shadow:0 0 0 1px var(--line);
+  }
+  .avatar-label{font-size:11px; color:var(--text-dim); margin:6px 0 4px;}
+  .mysel-list{margin-top:4px;}
+  .mysel-title{font-size:13px; font-weight:800; margin-bottom:8px; color:var(--text);}
+  .mysel-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:10px;
+    padding:8px 10px; margin-bottom:6px; font-size:13px;
+  }
+  .mysel-del{
+    background:transparent; border:1px solid var(--line); color:var(--text-dim);
+    width:26px; height:26px; border-radius:8px; font-size:14px; padding:0; line-height:1;
+  }
+  .mysel-del:hover{border-color:var(--coral); color:var(--coral);}
+  .mysel-empty{font-size:12px; color:var(--text-dim); margin-bottom:4px;}
+  .slot-pop{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:10px; margin-top:8px;
+  }
+  .slot-btns{display:flex; gap:6px;}
+  .slot-btn{
+    flex:1; padding:8px 4px; text-align:center; border-radius:8px; background:var(--bg);
+    border:1px solid var(--line); font-size:12px; cursor:pointer; color:var(--text-dim);
+  }
+  .slot-btn.on{background:var(--mint); color:var(--text); border-color:var(--mint); font-weight:700;}
+  .member-chip{
+    display:inline-flex; align-items:center; gap:4px; background:var(--bg-soft);
+    padding:5px 10px; border-radius:999px; font-size:12px; margin:2px 4px 2px 0; color:var(--text-dim);
+    border:1px solid var(--line);
+  }
+  .member-chip.you{color:#2f6b4d; border:1px solid var(--mint); background:rgba(143,201,169,.15);}
+  .vote-row{
+    display:flex; justify-content:space-between; align-items:center; padding:8px 0;
+    border-bottom:1px solid var(--line); font-size:13px;
+  }
+  .vote-row:last-child{border-bottom:none;}
+  .vote-names{color:var(--text-dim); font-size:11px;}
+  .map-box{
+    width:100%; aspect-ratio:1/1; background:var(--bg-soft); border-radius:12px; position:relative;
+    overflow:hidden; border:1px solid var(--line); cursor:crosshair;
+  }
+  .pin{
+    position:absolute; width:14px; height:14px; border-radius:50%; transform:translate(-50%,-100%);
+    border:2px solid var(--bg-soft);
+  }
+  .pin.you{background:var(--coral);}
+  .pin.other{background:var(--text-dim);}
+  .pin.center{background:var(--yellow); width:18px; height:18px;}
+  .final-screen{
+    text-align:center; padding:50px 20px; background:linear-gradient(160deg,var(--card),var(--bg-soft));
+    border-radius:20px; border:1px solid var(--mint);
+  }
+  .final-date{font-family:'Jua',sans-serif; font-size:32px; color:#c9791f; margin-bottom:6px;}
+  .final-place{font-size:20px; font-weight:800; color:#2f6b4d; margin-bottom:18px;}
+  .hotspot{
+    display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;
+  }
+  .note{font-size:11px; color:var(--text-dim); margin-top:10px; line-height:1.5;}
+  .center-title{font-size:15px; font-weight:800; margin:14px 0 4px;}
+
+  /* 바텀시트 */
+  .sheet-backdrop{
+    position:fixed; inset:0; background:rgba(45,35,25,.32); z-index:20;
+    animation:sheetFade .25s ease;
+  }
+  .bottom-sheet{
+    position:fixed; left:0; right:0; bottom:0; z-index:21; max-width:520px; margin:0 auto;
+    background:var(--card); border-radius:22px 22px 0 0; padding:10px 20px 26px;
+    box-shadow:0 -10px 30px rgba(74,63,53,.2); max-height:80vh; overflow-y:auto;
+    animation:sheetUp .32s cubic-bezier(.16,1,.3,1);
+  }
+  .sheet-handle{width:40px; height:5px; border-radius:3px; background:var(--line); margin:0 auto 14px;}
+  @keyframes sheetUp{from{transform:translateY(100%);} to{transform:translateY(0);}}
+  @keyframes sheetFade{from{opacity:0;} to{opacity:1;}}
+
+  /* 교통수단 뱃지 */
+  .transit-badge{
+    display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
+    border-radius:50%; font-size:12px; margin-right:6px; flex:none;
+  }
+  .transit-badge.subway{background:#3DA5D9; color:#fff;}
+  .transit-badge.car{background:#F2A65A; color:#fff;}
+  .hotspot-member{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;}
+  .hotspot-member:last-child{border-bottom:none;}
+  .hotspot-member .who{display:flex; align-items:center;}
+
+  /* 최종 티켓 */
+  .ticket-wrap{display:flex; justify-content:center; padding:6px 0 16px;}
+  .ticket{
+    width:100%; max-width:320px; aspect-ratio:9/16; background:var(--card); border-radius:20px;
+    position:relative; padding:36px 24px 22px; display:flex; flex-direction:column; align-items:center;
+    box-shadow:0 12px 32px rgba(74,63,53,.2); border:1px solid var(--line); overflow:hidden;
+  }
+  .ticket::before, .ticket::after{
+    content:""; position:absolute; width:22px; height:22px; border-radius:50%; background:var(--bg); top:64%;
+  }
+  .ticket::before{ left:-11px; }
+  .ticket::after{ right:-11px; }
+  .ticket-dash{ position:absolute; left:16px; right:16px; top:64%; border-top:2px dashed var(--line); }
+  .ticket-eyebrow{
+    font-family:'Jua',sans-serif; font-size:11px; letter-spacing:.16em; color:var(--text-dim); margin-bottom:14px;
+  }
+  .ticket-date{font-family:'Jua',sans-serif; font-size:28px; color:#c9791f; text-align:center; margin-bottom:6px;}
+  .ticket-place{
+    font-family:'Gaegu',cursive; font-size:23px; font-weight:700; color:#2f6b4d; text-align:center; margin-bottom:6px;
+  }
+  .ticket-sub{font-size:11px; color:var(--text-dim); margin-bottom:auto;}
+  .ticket-members{
+    font-size:12px; color:var(--text-dim); text-align:center; padding-top:18px; width:100%; margin-top:20px;
+  }
+  .ticket-stub{font-size:10px; letter-spacing:.1em; color:var(--text-dim); margin-top:14px;}
+</style>
+</head>
+<body>
+<button id="homeBtn" class="home-btn">🏠 처음으로</button>
+<div class="stars-decor" aria-hidden="true">
+  <span class="star s1">✦</span>
+  <span class="star s2">✧</span>
+  <span class="star s3">✦</span>
+  <span class="star s4">✧</span>
+</div>
+<div class="wrap" id="app"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+/* =====================================================================
+   Firebase 설정 - 아래 값을 본인 Firebase 프로젝트 값으로 바꿔주세요.
+   1) https://console.firebase.google.com 에서 프로젝트 생성
+   2) 왼쪽 메뉴 Build > Realtime Database > 데이터베이스 만들기 (테스트 모드로 시작)
+   3) Realtime Database > 규칙(Rules) 탭에서 아래처럼 설정:
+      {
+        "rules": {
+          "rooms": {
+            "$room": { ".read": true, ".write": true }
+          }
+        }
+      }
+      (친구끼리 쓰는 토이 프로젝트용 완화된 규칙입니다. 민감한 정보는 넣지 마세요.)
+   4) 프로젝트 설정(⚙️) > 일반 > "내 앱" > 웹 앱 추가 > SDK 구성값 복사
+   5) 아래 FIREBASE_CONFIG 값에 붙여넣기
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAxJmNhX4a6kgh0i1pszJ5rL0Z7L5JD39c",
+  authDomain: "whenwhere-bd0aa.firebaseapp.com",
+  databaseURL: "https://whenwhere-bd0aa-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "whenwhere-bd0aa",
+  storageBucket: "whenwhere-bd0aa.firebasestorage.app",
+  messagingSenderId: "907051771008",
+  appId: "1:907051771008:web:f20b81ce4fca368e693265"
+};
+
+let db = null;
+let firebaseReady = false;
+try{
+  if(FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY" && typeof firebase !== 'undefined'){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    firebaseReady = true;
+  }
+}catch(e){
+  console.error('Firebase 초기화 실패', e);
+  firebaseReady = false;
+}
+
+/* =====================================================================
+   카카오맵 설정 - 아래 값을 본인 카카오 개발자 앱의 JavaScript 키로 바꿔주세요.
+   1) https://developers.kakao.com 에서 애플리케이션 추가
+   2) 앱 키 탭에서 "JavaScript 키" 복사
+   3) 앱 설정 > 플랫폼 > Web 플랫폼 등록 (실제 배포 도메인 등록 필요.
+      file:// 로 여는 로컬 파일은 지도가 안 뜰 수 있어요 - GitHub Pages 등에 배포해서 쓰세요)
+   4) 아래 KAKAO_APP_KEY 값에 붙여넣기
+   ===================================================================== */
+const KAKAO_APP_KEY = "4ea1b132f1d0e69b65afd7a401a87192";
+const KAKAO_DEFAULT_CENTER = {lat:37.5665, lng:126.9780}; // 기본 지도 중심 (서울시청)
+
+let kakaoLoadPromise = null;
+function loadKakaoMaps(){
+  if(kakaoLoadPromise) return kakaoLoadPromise;
+  kakaoLoadPromise = new Promise((resolve, reject)=>{
+    if(!KAKAO_APP_KEY || KAKAO_APP_KEY === "YOUR_KAKAO_JS_KEY"){ reject(new Error('no-key')); return; }
+    if(window.kakao && window.kakao.maps){ resolve(); return; }
+    const script = document.createElement('script');
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&libraries=services&autoload=false`;
+    script.onload = ()=>{ kakao.maps.load(()=> resolve()); };
+    script.onerror = ()=> reject(new Error('load-failed'));
+    document.head.appendChild(script);
+  });
+  return kakaoLoadPromise;
+}
+
+/* ---------------- 공통 유틸 ---------------- */
+const SLOTS = ["오전","점심","오후"];
+const SLOT_HOUR = {"오전":"10:00","점심":"12:00","오후":"15:00"};
+const HOTSPOT_POOL = ["감성 카페 모카", "브런치 맛집 소소", "루프탑 바 아츠", "디저트 하우스 봄", "브루어리 크래프트홀", "우동 맛집 스미레", "베이커리 카페 온기"];
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function genRoomCode(){
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s=""; for(let i=0;i<5;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+/* ---------------- 상태 ---------------- */
+let myId = null;
+let myName = null;
+let roomCode = null;
+let roomRef = null;
+let lastDecisionStatus = null;
+
+const state = {
+  members: [],       // [{id,name}]
+  availability: {},  // memberId -> {date: [slots]}
+  decision: {status:'pending', date:null, slot:null},
+  locations: {},     // memberId -> {x,y,mode}
+  finalSpot: null
+};
+
+function ensureIdentity(){
+  let id = localStorage.getItem('myMemberId');
+  if(!id){ id = uid(); localStorage.setItem('myMemberId', id); }
+  myId = id;
+  myName = localStorage.getItem('myName');
+  roomCode = localStorage.getItem('myRoom');
+}
+
+/* ---------------- 방 데이터 (Firebase Realtime DB) ---------------- */
+function applySnapshot(data){
+  const membersObj = data.members || {};
+  state.members = Object.keys(membersObj).map(id => ({id, name: membersObj[id].name}));
+
+  // 저장 전(아직 서버에 반영 안 된) 내 로컬 선택은 실시간 갱신으로 덮어쓰지 않도록 보존
+  const myLocalAvail = state.availability[myId];
+
+  const availObj = data.avail || {};
+  state.availability = {};
+  for(const m of state.members){
+    state.availability[m.id] = availObj[m.id] || {};
+  }
+  if(myLocalAvail !== undefined){
+    state.availability[myId] = myLocalAvail;
+  }
+
+  const prevStatus = state.decision.status;
+  state.decision = data.decision || {status:'pending', date:null, slot:null};
+  if(prevStatus === 'decided' && state.decision.status === 'pending'){
+    lastDecisionStatus = 'pending';
+  }
+
+  const locObj = data.locations || {};
+  state.locations = {};
+  for(const m of state.members){
+    if(locObj[m.id]) state.locations[m.id] = locObj[m.id];
+  }
+
+  state.finalSpot = data.finalSpot || null;
+}
+
+function startRealtimeListening(){
+  if(roomRef) roomRef.off();
+  roomRef = db.ref(`rooms/${roomCode}`);
+  roomRef.on('value', (snapshot)=>{
+    applySnapshot(snapshot.val() || {});
+    render();
+  });
+}
+
+async function joinRoom(code, name){
+  roomCode = code.toUpperCase();
+  myName = name;
+  localStorage.setItem('myRoom', roomCode);
+  localStorage.setItem('myName', name);
+  await db.ref(`rooms/${roomCode}/members/${myId}`).set({name});
+  startRealtimeListening();
+}
+
+/* ---------------- 화면: 방 만들기/입장 ---------------- */
+function renderJoinScreen(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="eyebrow">Step 1 · 프로필</div>
+    <h1>WhenWhere</h1>
+    <div class="sub">친구들과 같은 방 코드로 접속해서, 되는 날짜와 만날 곳을 함께 정해요.</div>
+    <div class="card">
+      <label>닉네임</label>
+      <input type="text" id="nameInput" placeholder="닉네임을 입력하세요">
+      <label>방 코드 (친구가 만든 코드가 있다면 입력, 없으면 비워두세요)</label>
+      <input type="text" id="codeInput" placeholder="예: A3F9K" style="text-transform:uppercase">
+      <button class="btn-primary" id="joinBtn">입장하기</button>
+    </div>
+    <div class="note">방 코드가 없으면 새 방이 자동으로 만들어져요. 친구들에게 이 코드를 공유하면 같은 화면을 함께 볼 수 있어요.</div>
+  `;
+  document.getElementById('joinBtn').onclick = async ()=>{
+    const name = document.getElementById('nameInput').value.trim();
+    const codeInput = document.getElementById('codeInput').value.trim();
+    if(!name){ alert('닉네임을 입력해주세요'); return; }
+    const code = codeInput || genRoomCode();
+    await joinRoom(code, name);
+  };
+}
+
+function renderSetupScreen(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="eyebrow">설정 필요</div>
+    <h1>Firebase 연결이 필요해요</h1>
+    <div class="sub">실시간 공유 저장소로 Firebase Realtime Database를 쓰도록 만들어졌어요. 아직 설정값이 비어있어요.</div>
+    <div class="card">
+      <div style="font-weight:800; margin-bottom:8px;">설정 방법</div>
+      <div class="sub" style="margin:0 0 8px;">1. console.firebase.google.com 에서 프로젝트 생성</div>
+      <div class="sub" style="margin:0 0 8px;">2. Build → Realtime Database → 데이터베이스 만들기 (테스트 모드)</div>
+      <div class="sub" style="margin:0 0 8px;">3. 규칙(Rules)에서 rooms 경로 read/write 허용으로 설정</div>
+      <div class="sub" style="margin:0 0 8px;">4. 프로젝트 설정 → 웹 앱 추가 → SDK 설정값 복사</div>
+      <div class="sub" style="margin:0;">5. 이 html 파일 상단 FIREBASE_CONFIG 값에 붙여넣기</div>
+    </div>
+    <div class="note">코드 상단 주석에 자세한 설명이 있어요.</div>
+  `;
+}
+
+function renderLoadingScreen(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="eyebrow">불러오는 중</div>
+    <h1>방 정보를 불러오고 있어요…</h1>
+    <div class="sub">잠시만 기다려주세요.</div>
+  `;
+}
+
+/* ---------------- 캘린더 렌더 ---------------- */
+function buildMonthDays(year, month){
+  const first = new Date(year, month, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const cells = [];
+  for(let i=0;i<startDow;i++) cells.push(null);
+  for(let d=1; d<=daysInMonth; d++) cells.push(new Date(year, month, d));
+  return cells;
+}
+
+let openDay = null; // 현재 슬롯 팝업 열려있는 날짜 문자열
+
+function myAvailability(){
+  return state.availability[myId] || {};
+}
+
+function toggleSlot(dateStr, slot){
+  const avail = myAvailability();
+  if(!avail[dateStr]) avail[dateStr] = [];
+  const idx = avail[dateStr].indexOf(slot);
+  if(idx>=0) avail[dateStr].splice(idx,1); else avail[dateStr].push(slot);
+  if(avail[dateStr].length===0) delete avail[dateStr];
+  state.availability[myId] = avail;
+}
+
+async function submitAvailability(){
+  await db.ref(`rooms/${roomCode}/avail/${myId}`).set(state.availability[myId]||{});
+}
+
+function mySelectionEntries(){
+  const avail = myAvailability();
+  const entries = [];
+  Object.keys(avail).sort().forEach(date=>{
+    avail[date].forEach(slot => entries.push({date, slot}));
+  });
+  return entries;
+}
+
+function renderMySelectionList(){
+  const entries = mySelectionEntries();
+  if(entries.length===0){
+    return `<div class="mysel-list"><div class="mysel-empty">아직 선택한 날짜가 없어요. 달력에서 날짜를 눌러 골라주세요.</div></div>`;
+  }
+  return `<div class="mysel-list">
+    <div class="mysel-title">내가 선택한 시간 (${entries.length}개)</div>
+    ${entries.map(e=>`
+      <div class="mysel-row">
+        <span>${e.date} · ${e.slot}</span>
+        <button class="mysel-del" data-date="${e.date}" data-slot="${e.slot}">✕</button>
+      </div>`).join('')}
+  </div>`;
+}
+
+async function removeSelection(date, slot){
+  toggleSlot(date, slot); // 해당 슬롯이 켜져있으므로 토글하면 꺼짐
+  await db.ref(`rooms/${roomCode}/avail/${myId}`).set(state.availability[myId]||{});
+}
+
+function tally(){
+  // date-slot 별 참여자 이름 목록
+  const map = {}; // "date|slot" -> [names]
+  for(const m of state.members){
+    const av = state.availability[m.id] || {};
+    for(const date in av){
+      for(const slot of av[date]){
+        const key = `${date}|${slot}`;
+        if(!map[key]) map[key] = [];
+        map[key].push(m.name);
+      }
+    }
+  }
+  return map;
+}
+
+function bestSlot(map){
+  let best=null, bestCount=0;
+  for(const key in map){
+    if(map[key].length > bestCount){ bestCount = map[key].length; best = key; }
+  }
+  return best;
+}
+
+function namesForDate(date, map){
+  const names = new Set();
+  SLOTS.forEach(s=>{
+    (map[`${date}|${s}`]||[]).forEach(n=>names.add(n));
+  });
+  return Array.from(names);
+}
+
+const AVATAR_PALETTE = ['#F6B8CB','#AEE3F0','#FFD97A','#C9E4CA','#D9C2F0','#FFC9B9'];
+function colorForName(name){
+  let h = 0;
+  for(let i=0;i<name.length;i++) h = (h*31 + name.charCodeAt(i)) % AVATAR_PALETTE.length;
+  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
+}
+function avatarBubble(name){
+  return `<div class="avatar-bubble" style="background:${colorForName(name)}" title="${name}">${name.slice(0,1)}</div>`;
+}
+
+let calMonthOffset = 0; // 0 = 이번 달, +1 = 다음 달 ...
+
+function renderCalendarScreen(){
+  const app = document.getElementById('app');
+  const today = new Date();
+  const map = tally();
+  const best = bestSlot(map);
+  const bestDate = best ? best.split('|')[0] : null;
+
+  const viewDate = new Date(today.getFullYear(), today.getMonth()+calMonthOffset, 1);
+  const cells = buildMonthDays(viewDate.getFullYear(), viewDate.getMonth());
+  const monthsHtml = `
+    <div class="cal-month-nav">
+      <button class="nav-arrow" id="prevMonthBtn" ${calMonthOffset<=0 ? 'disabled style="opacity:.35;cursor:default;"':''}>‹</button>
+      <div class="cal-month">${viewDate.getFullYear()}년 ${viewDate.getMonth()+1}월</div>
+      <button class="nav-arrow" id="nextMonthBtn">›</button>
+    </div>
+    <div class="cal-grid">
+      ${['일','월','화','수','목','금','토'].map(x=>`<div class="cal-dow">${x}</div>`).join('')}
+      ${cells.map(c=>{
+        if(!c) return `<div class="cal-day empty"></div>`;
+        const ds = fmtDate(c);
+        const mine = myAvailability()[ds] || [];
+        const dayNames = namesForDate(ds, map);
+        const totalMembers = state.members.length || 1;
+        const ratio = dayNames.length / totalMembers;
+        const heatAlpha = dayNames.length===0 ? 0 : Math.min(0.85, 0.18 + ratio*0.62);
+        const chips = mine.map(s=>`<span class="mychip">${s}</span>`).join('');
+        return `<div class="cal-day ${mine.length? 'selected':''} ${ds===bestDate?'best':''}" data-date="${ds}" style="background-color:rgba(255,159,69,${heatAlpha});">
+          <div>${c.getDate()}</div>
+          <div class="mychips">${chips}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="cal-legend">
+      <span><span class="legend-dot" style="background:var(--coral);"></span>내가 선택한 날 (테두리)</span>
+      <span><span class="legend-swatch" style="background:rgba(255,159,69,.85);"></span>다 같이 되는 날 (진할수록 多)</span>
+    </div>`;
+
+  const bannerHtml = lastDecisionStatus ?
+    `<div class="banner pending">🔔 날짜를 다시 봐주세요! 확정이 취소됐어요.</div>` : '';
+
+  app.innerHTML = `
+    <div class="eyebrow">Step 2 · 날짜 정하기 · 방 ${roomCode}</div>
+    <h1>되는 날 골라주세요</h1>
+    <div class="sub">날짜를 누르고 시간대(오전/점심/오후)를 선택하세요. 여러 날 선택 가능해요.</div>
+    ${bannerHtml}
+    <div class="card">
+      <div style="margin-bottom:10px;">참여자: ${state.members.map(m=>`<span class="member-chip ${m.id===myId?'you':''}">${m.name}${m.id===myId?' (나)':''}</span>`).join('')}</div>
+      ${monthsHtml}
+      <div id="slotPopHolder"></div>
+      ${renderMySelectionList()}
+      <button class="btn-primary" id="submitAvailBtn" style="margin-top:14px;">내 가능 시간 저장</button>
+    </div>
+    ${renderDecisionArea(map, best)}
+  `;
+
+  const confirmBtn = document.getElementById('confirmDateBtn');
+  if(confirmBtn && best){
+    const [bDate, bSlot] = best.split('|');
+    confirmBtn.onclick = ()=> confirmDate(bDate, bSlot);
+  }
+
+  document.querySelectorAll('.mysel-del').forEach(btn=>{
+    btn.onclick = ()=> removeSelection(btn.getAttribute('data-date'), btn.getAttribute('data-slot'));
+  });
+
+  document.getElementById('prevMonthBtn').onclick = ()=>{
+    if(calMonthOffset>0){ calMonthOffset--; renderCalendarScreen(); }
+  };
+  document.getElementById('nextMonthBtn').onclick = ()=>{
+    calMonthOffset++; renderCalendarScreen();
+  };
+
+  document.querySelectorAll('.cal-day[data-date]').forEach(el=>{
+    el.onclick = ()=>{
+      const ds = el.getAttribute('data-date');
+      openDay = (openDay===ds) ? null : ds;
+      renderSlotPopup();
+    };
+  });
+  document.getElementById('submitAvailBtn').onclick = submitAvailability;
+  renderSlotPopup();
+}
+
+function renderSlotPopup(){
+  const holder = document.getElementById('slotPopHolder');
+  if(!holder) return;
+  if(!openDay){ holder.innerHTML=''; return; }
+  const mine = myAvailability()[openDay] || [];
+  const dayNames = namesForDate(openDay, tally());
+  const avatarHtml = dayNames.length>0
+    ? `<div class="avatar-label">이 날 가능한 친구 (${dayNames.length}명)</div>
+       <div class="avatar-row">${dayNames.map(n=>avatarBubble(n)).join('')}</div>`
+    : '';
+  holder.innerHTML = `
+    <div class="slot-pop">
+      <div style="font-size:13px; font-weight:700; margin-bottom:6px;">${openDay}</div>
+      <div class="slot-btns">
+        ${SLOTS.map(s=>`<div class="slot-btn ${mine.includes(s)?'on':''}" data-slot="${s}">${s}</div>`).join('')}
+      </div>
+      ${avatarHtml}
+    </div>`;
+  holder.querySelectorAll('.slot-btn').forEach(el=>{
+    el.onclick = ()=>{
+      toggleSlot(openDay, el.getAttribute('data-slot'));
+      renderCalendarScreen();
+      openDay = openDay; // 유지
+      // 팝업 다시 열어주기
+      document.querySelectorAll('.cal-day[data-date]').forEach(d=>{
+        if(d.getAttribute('data-date')===openDay) d.classList.add('selected');
+      });
+      renderSlotPopup();
+    };
+  });
+}
+
+function renderVoteSummary(map){
+  const keys = Object.keys(map).sort();
+  if(keys.length===0) return `<div class="card"><div class="sub" style="margin:0;">아직 아무도 시간을 선택하지 않았어요.</div></div>`;
+  return `<div class="card">
+    <div style="font-weight:800; margin-bottom:8px;">모두의 선택 (합집합)</div>
+    ${keys.map(k=>{
+      const [date,slot] = k.split('|');
+      const names = map[k];
+      return `<div class="vote-row">
+        <span>${date} · ${slot} <span class="vote-names">(${names.length}명)</span></span>
+        <span class="vote-names">${names.join(', ')}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderDecisionArea(map, best){
+  if(!best) return '';
+  const [date, slot] = best.split('|');
+  const names = map[best];
+  return `<div class="card">
+    <div style="font-weight:800; margin-bottom:6px;">🙋 가장 많이 겹치는 날</div>
+    <div class="sub" style="margin-bottom:10px;">${date} · ${slot} — ${names.join(', ')} 가능 (${names.length}명)</div>
+    <div class="sub" style="margin-bottom:10px;">이 날은 어때요?</div>
+    <div class="row">
+      <button class="btn-coral" id="confirmDateBtn">이 날짜로 확정</button>
+    </div>
+  </div>`;
+}
+
+async function confirmDate(date, slot){
+  await db.ref(`rooms/${roomCode}/decision`).set({status:'decided', date, slot, decidedBy: myName});
+}
+
+async function reopenDate(){
+  await db.ref(`rooms/${roomCode}/decision`).set({status:'pending', date:null, slot:null});
+  await db.ref(`rooms/${roomCode}/finalSpot`).remove();
+  lastDecisionStatus = 'pending';
+}
+
+/* ---------------- 위치 / 지도 화면 (카카오맵) ---------------- */
+function centroid(locs){
+  const arr = Object.values(locs);
+  if(arr.length===0) return null;
+  const lat = arr.reduce((a,l)=>a+l.lat,0)/arr.length;
+  const lng = arr.reduce((a,l)=>a+l.lng,0)/arr.length;
+  return {lat,lng};
+}
+
+function haversineKm(a, b){
+  const R = 6371;
+  const dLat = (b.lat-a.lat)*Math.PI/180;
+  const dLng = (b.lng-a.lng)*Math.PI/180;
+  const s = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+
+function estTimeMin(km, mode){
+  const base = 5;
+  const minPerKm = mode==='transit' ? 3.2 : 1.6; // 대략적인 평균치 (실제 경로 API 아님)
+  return Math.round(base + km*minPerKm);
+}
+
+let pendingMode = null;
+let pendingLatLng = null;
+
+function renderLocationScreen(){
+  const app = document.getElementById('app');
+  const allSubmitted = state.members.every(m => state.locations[m.id]);
+  const myLoc = state.locations[myId];
+  if(pendingMode===null && myLoc) pendingMode = myLoc.mode;
+  if(pendingLatLng===null && myLoc) pendingLatLng = {lat:myLoc.lat, lng:myLoc.lng};
+
+  app.innerHTML = `
+    <div class="eyebrow">Step 3 · 장소 정하기 · 방 ${roomCode}</div>
+    <h1>어디서 출발하세요?</h1>
+    <div class="banner decided">📅 날짜가 정해졌어요! ${state.decision.date} · ${state.decision.slot} (${SLOT_HOUR[state.decision.slot]})</div>
+    <div class="card">
+      <div class="sub" style="margin-bottom:10px;">주소를 검색하거나 지도를 클릭해서 출발 위치를 표시해주세요.</div>
+      <div class="row" style="margin-bottom:10px;">
+        <input type="text" id="addrInput" placeholder="예: 강남역, 제주시청" style="margin-bottom:0;">
+        <button class="btn-ghost" id="addrSearchBtn" style="flex:none; width:64px;">검색</button>
+      </div>
+      <div class="map-box" id="mapBox" style="aspect-ratio:auto; height:260px; cursor:default;"></div>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn-ghost ${pendingMode==='transit'?'mode-on':''}" id="modeTransit">🚇 대중교통</button>
+        <button class="btn-ghost ${pendingMode==='car'?'mode-on':''}" id="modeCar">🚗 자차</button>
+      </div>
+      <div class="note" id="modeStatus">${pendingMode ? `선택된 이동수단: ${pendingMode==='transit'?'대중교통':'자차'}` : '이동수단을 먼저 선택해주세요.'}</div>
+      <button class="btn-primary" id="saveLocBtn" style="margin-top:12px;">내 위치 저장</button>
+    </div>
+    <div class="card">
+      <div style="font-weight:800; margin-bottom:6px;">제출 현황</div>
+      ${state.members.map(m=>`<div class="vote-row"><span>${m.name}${m.id===myId?' (나)':''}</span><span>${state.locations[m.id]?'✅ 완료':'⏳ 대기중'}</span></div>`).join('')}
+    </div>
+    ${allSubmitted ? renderCenterResultSheet() : ''}
+  `;
+
+  document.getElementById('modeTransit').onclick = ()=>{
+    pendingMode='transit';
+    document.getElementById('modeStatus').innerText='이동수단: 대중교통';
+    document.getElementById('modeTransit').classList.add('mode-on');
+    document.getElementById('modeCar').classList.remove('mode-on');
+  };
+  document.getElementById('modeCar').onclick = ()=>{
+    pendingMode='car';
+    document.getElementById('modeStatus').innerText='이동수단: 자차';
+    document.getElementById('modeCar').classList.add('mode-on');
+    document.getElementById('modeTransit').classList.remove('mode-on');
+  };
+
+  document.getElementById('saveLocBtn').onclick = async ()=>{
+    if(!pendingMode){ alert('이동수단을 먼저 선택해주세요'); return; }
+    if(!pendingLatLng){ alert('지도를 클릭하거나 주소를 검색해서 위치를 지정해주세요'); return; }
+    await db.ref(`rooms/${roomCode}/locations/${myId}`).set({lat:pendingLatLng.lat, lng:pendingLatLng.lng, mode:pendingMode});
+  };
+
+  setupLocationMap();
+  if(allSubmitted) setupResultMap();
+
+  const finalizeBtn = document.getElementById('finalizeBtn');
+  if(finalizeBtn){
+    finalizeBtn.onclick = async ()=>{
+      await db.ref(`rooms/${roomCode}/finalSpot`).set(window.__finalSpot);
+    };
+  }
+}
+
+async function setupLocationMap(){
+  const container = document.getElementById('mapBox');
+  if(!container) return;
+  try{
+    await loadKakaoMaps();
+  }catch(e){
+    container.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--text-dim);">카카오맵 키가 설정되지 않았어요. 파일 상단 KAKAO_APP_KEY를 채워주세요.</div>`;
+    return;
+  }
+  if(!document.getElementById('mapBox')) return; // 그 사이 화면이 바뀌었으면 중단
+
+  const center = pendingLatLng || KAKAO_DEFAULT_CENTER;
+  const map = new kakao.maps.Map(container, {center: new kakao.maps.LatLng(center.lat, center.lng), level: 7});
+
+  state.members.forEach(m=>{
+    if(m.id===myId) return;
+    const loc = state.locations[m.id];
+    if(!loc) return;
+    new kakao.maps.Marker({position: new kakao.maps.LatLng(loc.lat, loc.lng), map, opacity:0.55});
+  });
+
+  const myMarker = new kakao.maps.Marker({
+    position: new kakao.maps.LatLng(center.lat, center.lng), draggable:true
+  });
+  if(pendingLatLng) myMarker.setMap(map);
+
+  kakao.maps.event.addListener(myMarker, 'dragend', ()=>{
+    const pos = myMarker.getPosition();
+    pendingLatLng = {lat: pos.getLat(), lng: pos.getLng()};
+  });
+
+  kakao.maps.event.addListener(map, 'click', (mouseEvent)=>{
+    const latlng = mouseEvent.latLng;
+    pendingLatLng = {lat: latlng.getLat(), lng: latlng.getLng()};
+    myMarker.setPosition(latlng);
+    myMarker.setMap(map);
+  });
+
+  document.getElementById('addrSearchBtn').onclick = ()=>{
+    const q = document.getElementById('addrInput').value.trim();
+    if(!q) return;
+    const geocoder = new kakao.maps.services.Geocoder();
+    geocoder.addressSearch(q, (result, status)=>{
+      if(status === kakao.maps.services.Status.OK){
+        const lat = parseFloat(result[0].y), lng = parseFloat(result[0].x);
+        const latlng = new kakao.maps.LatLng(lat, lng);
+        map.setCenter(latlng);
+        myMarker.setPosition(latlng);
+        myMarker.setMap(map);
+        pendingLatLng = {lat, lng};
+      } else {
+        alert('주소를 찾을 수 없어요. 다른 키워드로 시도해보세요 (예: 동/역 이름, 건물명 등)');
+      }
+    });
+  };
+}
+
+function renderCenterResultSheet(){
+  const c = centroid(state.locations);
+  if(!c) return '';
+  // 중심점 근처에 핫플 위치를 모의로 배치 (실제 핫플 데이터 연동 전 임시)
+  const spots = HOTSPOT_POOL.slice(0,4).map((name,i)=>{
+    const angle = (i/4)*Math.PI*2;
+    const r = 0.004 + (i%3)*0.0025; // 위경도 기준 대략 400m~1km 반경
+    const lat = c.lat + Math.sin(angle)*r;
+    const lng = c.lng + Math.cos(angle)*r;
+    return {name, lat, lng};
+  });
+  const top = spots[0];
+
+  const rows = state.members.map(m=>{
+    const loc = state.locations[m.id];
+    const km = haversineKm(loc, top);
+    const t = estTimeMin(km, loc.mode);
+    const badge = loc.mode==='transit'
+      ? `<span class="transit-badge subway">🚇</span>` : `<span class="transit-badge car">🚗</span>`;
+    return `<div class="hotspot-member"><span class="who">${badge}${m.name}</span><span>약 ${t}분 (${km.toFixed(1)}km)</span></div>`;
+  }).join('');
+
+  window.__finalSpot = top.name;
+  window.__resultMapData = {center: c, spots, memberLocs: state.members.map(m=>state.locations[m.id])};
+
+  return `
+    <div class="sheet-backdrop"></div>
+    <div class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="center-title" style="margin-top:0;">📍 여기가 가운데에요</div>
+      <div class="map-box" id="resultMapBox" style="aspect-ratio:auto; height:220px; margin-bottom:10px;"></div>
+      <div style="font-weight:800; margin-bottom:6px;">🔥 요즘 핫플 (임의 배치, 실데이터 연동 전)</div>
+      ${spots.map(s=>`<div class="hotspot"><span>${s.name}</span><span>${s===top?'⭐ 추천':''}</span></div>`).join('')}
+      <div style="font-weight:800; margin:12px 0 6px;">⏱ ${top.name}까지 예상 소요시간</div>
+      ${rows}
+      <button class="btn-yellow" id="finalizeBtn" style="width:100%; margin-top:14px;">이 장소로 최종 확정</button>
+      <div class="note">※ 위치는 실제 좌표(카카오맵) 기준이지만, 소요시간은 직선거리 기반 대략 계산이에요. 실제 경로 시간까지 필요하면 길찾기 API를 추가로 연동하면 됩니다.</div>
+    </div>`;
+}
+
+async function setupResultMap(){
+  const container = document.getElementById('resultMapBox');
+  if(!container || !window.__resultMapData) return;
+  try{
+    await loadKakaoMaps();
+  }catch(e){
+    container.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--text-dim);">카카오맵 키가 설정되지 않았어요.</div>`;
+    return;
+  }
+  if(!document.getElementById('resultMapBox')) return;
+  const {center, spots, memberLocs} = window.__resultMapData;
+  const map = new kakao.maps.Map(container, {center: new kakao.maps.LatLng(center.lat, center.lng), level: 6});
+  memberLocs.forEach(loc=>{
+    if(!loc) return;
+    new kakao.maps.Marker({position: new kakao.maps.LatLng(loc.lat, loc.lng), map, opacity:0.6});
+  });
+  new kakao.maps.Marker({position: new kakao.maps.LatLng(center.lat, center.lng), map});
+  spots.forEach(s=>{
+    new kakao.maps.Marker({position: new kakao.maps.LatLng(s.lat, s.lng), map, title:s.name});
+  });
+}
+
+/* ---------------- 최종 화면 (티켓 콘셉트) ---------------- */
+function renderFinalScreen(){
+  const app = document.getElementById('app');
+  const d = state.decision;
+  const parts = d.date.split('-');
+  const spot = state.finalSpot || '약속 장소';
+  const memberNames = state.members.map(m=>m.name).join(' · ');
+  app.innerHTML = `
+    <div class="eyebrow">완료 · 방 ${roomCode}</div>
+    <h1>모두 준비됐어요!</h1>
+    <div class="sub">아래 티켓을 캡처해서 친구들에게 공유해도 좋아요.</div>
+    <div class="ticket-wrap">
+      <div class="ticket">
+        <div class="ticket-eyebrow">MEETING TICKET</div>
+        <div class="ticket-date">${parseInt(parts[1])}월 ${parseInt(parts[2])}일 ${SLOT_HOUR[d.slot]}</div>
+        <div class="ticket-place">${spot}</div>
+        <div class="ticket-sub">여기서 만나!</div>
+        <div class="ticket-dash"></div>
+        <div class="ticket-members">
+          <div style="margin-bottom:4px;">PARTICIPANTS</div>
+          <div>${memberNames}</div>
+          <div class="ticket-stub">방 ${roomCode} · NO REFUND, ONLY FUN</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:center;">
+      <button class="btn-ghost btn-small" id="resetBtn">처음부터 다시</button>
+    </div>
+  `;
+  document.getElementById('resetBtn').onclick = async ()=>{
+    await reopenDate();
+  };
+}
+
+/* ---------------- 라우팅 ---------------- */
+function render(){
+  const homeBtn = document.getElementById('homeBtn');
+  if(homeBtn) homeBtn.style.display = (roomCode && myName) ? 'block' : 'none';
+
+  if(!roomCode || !myName){ renderJoinScreen(); return; }
+
+  if(state.decision.status !== 'decided'){
+    renderCalendarScreen();
+    return;
+  }
+
+  if(state.finalSpot){
+    renderFinalScreen();
+    return;
+  }
+
+  renderLocationScreen();
+}
+
+function leaveRoom(){
+  if(roomRef){ roomRef.off(); roomRef = null; }
+  localStorage.removeItem('myRoom');
+  localStorage.removeItem('myName');
+  roomCode = null;
+  myName = null;
+  lastDecisionStatus = null;
+  pendingMode = null;
+  pendingLatLng = null;
+  state.members = [];
+  state.availability = {};
+  state.decision = {status:'pending', date:null, slot:null};
+  state.locations = {};
+  state.finalSpot = null;
+  render();
+}
+
+/* ---------------- 시작 ---------------- */
+(function init(){
+  document.getElementById('homeBtn').onclick = ()=>{
+    if(confirm('처음 화면으로 돌아갈까요? 지금 방에서 나가게 돼요.')){
+      leaveRoom();
+    }
+  };
+  if(!firebaseReady){ renderSetupScreen(); return; }
+  ensureIdentity();
+  if(roomCode && myName){
+    renderLoadingScreen();
+    startRealtimeListening();
+  } else {
+    render();
+  }
+})();
+</script>
+</body>
+</html>
