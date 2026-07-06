@@ -534,12 +534,13 @@ function tally(){
   return map;
 }
 
-function bestSlot(map){
-  let best=null, bestCount=0;
+function bestSlots(map){
+  let bestCount = 0;
   for(const key in map){
-    if(map[key].length > bestCount){ bestCount = map[key].length; best = key; }
+    if(map[key].length > bestCount) bestCount = map[key].length;
   }
-  return best;
+  if(bestCount===0) return [];
+  return Object.keys(map).filter(k=>map[k].length===bestCount).sort();
 }
 
 function namesForDate(date, map){
@@ -566,8 +567,8 @@ function renderCalendarScreen(){
   const app = document.getElementById('app');
   const today = new Date();
   const map = tally();
-  const best = bestSlot(map);
-  const bestDate = best ? best.split('|')[0] : null;
+  const bestList = bestSlots(map);
+  const bestDates = new Set(bestList.map(k=>k.split('|')[0]));
 
   const viewDate = new Date(today.getFullYear(), today.getMonth()+calMonthOffset, 1);
   const cells = buildMonthDays(viewDate.getFullYear(), viewDate.getMonth());
@@ -588,7 +589,7 @@ function renderCalendarScreen(){
         const ratio = dayNames.length / totalMembers;
         const heatAlpha = dayNames.length===0 ? 0 : Math.min(0.85, 0.18 + ratio*0.62);
         const chips = mine.map(s=>`<span class="mychip">${s}</span>`).join('');
-        return `<div class="cal-day ${mine.length? 'selected':''} ${ds===bestDate?'best':''}" data-date="${ds}" style="background-color:rgba(255,159,69,${heatAlpha});">
+        return `<div class="cal-day ${mine.length? 'selected':''} ${bestDates.has(ds)?'best':''}" data-date="${ds}" style="background-color:rgba(255,159,69,${heatAlpha});">
           <div>${c.getDate()}</div>
           <div class="mychips">${chips}</div>
         </div>`;
@@ -614,14 +615,12 @@ function renderCalendarScreen(){
       ${renderMySelectionList()}
       <button class="btn-primary" id="submitAvailBtn" style="margin-top:14px;">내 가능 시간 저장</button>
     </div>
-    ${renderDecisionArea(map, best)}
+    ${renderDecisionArea(map, bestList)}
   `;
 
-  const confirmBtn = document.getElementById('confirmDateBtn');
-  if(confirmBtn && best){
-    const [bDate, bSlot] = best.split('|');
-    confirmBtn.onclick = ()=> confirmDate(bDate, bSlot);
-  }
+  document.querySelectorAll('.confirm-date-btn').forEach(btn=>{
+    btn.onclick = ()=> confirmDate(btn.getAttribute('data-date'), btn.getAttribute('data-slot'));
+  });
 
   document.querySelectorAll('.mysel-del').forEach(btn=>{
     btn.onclick = ()=> removeSelection(btn.getAttribute('data-date'), btn.getAttribute('data-slot'));
@@ -693,17 +692,22 @@ function renderVoteSummary(map){
   </div>`;
 }
 
-function renderDecisionArea(map, best){
-  if(!best) return '';
-  const [date, slot] = best.split('|');
-  const names = map[best];
+function renderDecisionArea(map, bestList){
+  if(!bestList || bestList.length===0) return '';
+  const multi = bestList.length > 1;
+  const rows = bestList.map(key=>{
+    const [date, slot] = key.split('|');
+    const names = map[key];
+    return `<div class="hotspot-member">
+      <span class="who">${date} · ${slot} <span class="vote-names" style="margin-left:6px;">${names.join(', ')} (${names.length}명)</span></span>
+      <button class="btn-coral btn-small confirm-date-btn" data-date="${date}" data-slot="${slot}">확정</button>
+    </div>`;
+  }).join('');
+
   return `<div class="card">
-    <div style="font-weight:800; margin-bottom:6px;">🙋 가장 많이 겹치는 날</div>
-    <div class="sub" style="margin-bottom:10px;">${date} · ${slot} — ${names.join(', ')} 가능 (${names.length}명)</div>
-    <div class="sub" style="margin-bottom:10px;">이 날은 어때요?</div>
-    <div class="row">
-      <button class="btn-coral" id="confirmDateBtn">이 날짜로 확정</button>
-    </div>
+    <div style="font-weight:800; margin-bottom:6px;">🙋 ${multi ? '가장 많이 겹치는 날이 여러 개예요' : '가장 많이 겹치는 날'}</div>
+    <div class="sub" style="margin-bottom:10px;">${multi ? '아래 중에서 골라 확정해주세요.' : '이 날은 어때요?'}</div>
+    ${rows}
   </div>`;
 }
 
@@ -757,7 +761,7 @@ function renderLocationScreen(){
     <div class="card">
       <div class="sub" style="margin-bottom:10px;">주소를 검색하거나 지도를 클릭해서 출발 위치를 표시해주세요.</div>
       <div class="row" style="margin-bottom:10px;">
-        <input type="text" id="addrInput" placeholder="예: 강남역" style="margin-bottom:0;">
+        <input type="text" id="addrInput" placeholder="예: 강남역, 제주시청" style="margin-bottom:0;">
         <button class="btn-ghost" id="addrSearchBtn" style="flex:none; width:64px;">검색</button>
       </div>
       <div class="map-box" id="mapBox" style="aspect-ratio:auto; height:260px; cursor:default;"></div>
