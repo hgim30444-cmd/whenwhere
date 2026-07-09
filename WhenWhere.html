@@ -78,6 +78,7 @@
     padding:12px 16px; font-size:14px; font-weight:700; transition:transform .1s ease;
   }
   button:active{transform:scale(.97);}
+  button:disabled{opacity:.5; cursor:not-allowed;}
   .btn-primary{background:var(--mint); color:var(--text); width:100%;}
   .btn-ghost{background:transparent; color:var(--text-dim); border:1px solid var(--line);}
   .btn-ghost.mode-on{background:rgba(143,201,169,.2); color:#2f6b4d; border-color:var(--mint); font-weight:800;}
@@ -333,7 +334,6 @@ function loadKakaoMaps(){
 /* ---------------- 공통 유틸 ---------------- */
 const SLOTS = ["오전","점심","오후"];
 const SLOT_HOUR = {"오전":"10:00","점심":"12:00","오후":"15:00"};
-const HOTSPOT_POOL = ["감성 카페 모카", "브런치 맛집 소소", "루프탑 바 아츠", "디저트 하우스 봄", "브루어리 크래프트홀", "우동 맛집 스미레", "베이커리 카페 온기"];
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function genRoomCode(){
@@ -835,7 +835,7 @@ function renderLocationScreen(){
   };
 
   setupLocationMap();
-  if(allSubmitted) setupResultMap();
+  if(allSubmitted){ setupResultMap(); loadHotspots(); }
 
   const finalizeBtn = document.getElementById('finalizeBtn');
   if(finalizeBtn){
@@ -919,27 +919,7 @@ async function setupLocationMap(){
 function renderCenterResultSheet(){
   const c = centroid(state.locations);
   if(!c) return '';
-  // 중심점 근처에 핫플 위치를 모의로 배치 (실제 핫플 데이터 연동 전 임시)
-  const spots = HOTSPOT_POOL.slice(0,4).map((name,i)=>{
-    const angle = (i/4)*Math.PI*2;
-    const r = 0.004 + (i%3)*0.0025; // 위경도 기준 대략 400m~1km 반경
-    const lat = c.lat + Math.sin(angle)*r;
-    const lng = c.lng + Math.cos(angle)*r;
-    return {name, lat, lng};
-  });
-  const top = spots[0];
-
-  const rows = state.members.map(m=>{
-    const loc = state.locations[m.id];
-    const km = haversineKm(loc, top);
-    const t = estTimeMin(km, loc.mode);
-    const badge = loc.mode==='transit'
-      ? `<span class="transit-badge subway">🚇</span>` : `<span class="transit-badge car">🚗</span>`;
-    return `<div class="hotspot-member"><span class="who">${badge}${m.name}</span><span>약 ${t}분 (${km.toFixed(1)}km)</span></div>`;
-  }).join('');
-
-  window.__finalSpot = top.name;
-  window.__resultMapData = {center: c, spots, memberLocs: state.members.map(m=>state.locations[m.id])};
+  window.__resultCenter = c;
 
   return `
     <div class="sheet-backdrop"></div>
@@ -947,18 +927,20 @@ function renderCenterResultSheet(){
       <div class="sheet-handle"></div>
       <div class="center-title" style="margin-top:0;">📍 여기가 가운데에요</div>
       <div class="map-box" id="resultMapBox" style="aspect-ratio:auto; height:220px; margin-bottom:10px;"></div>
-      <div style="font-weight:800; margin-bottom:6px;">🔥 요즘 핫플 (임의 배치, 실데이터 연동 전)</div>
-      ${spots.map(s=>`<div class="hotspot"><span>${s.name}</span><span>${s===top?'⭐ 추천':''}</span></div>`).join('')}
-      <div style="font-weight:800; margin:12px 0 6px;">⏱ ${top.name}까지 예상 소요시간</div>
-      ${rows}
-      <button class="btn-yellow" id="finalizeBtn" style="width:100%; margin-top:14px;">이 장소로 최종 확정</button>
-      <div class="note">※ 위치는 실제 좌표(카카오맵) 기준이지만, 소요시간은 직선거리 기반 대략 계산이에요. 실제 경로 시간까지 필요하면 길찾기 API를 추가로 연동하면 됩니다.</div>
+      <div style="font-weight:800; margin-bottom:6px;">🔥 요즘 핫플</div>
+      <div id="hotspotList"><div class="note">주변 장소를 불러오는 중...</div></div>
+      <div style="font-weight:800; margin:12px 0 6px;">⏱ 예상 소요시간</div>
+      <div id="etaList"><div class="note">잠시만 기다려주세요...</div></div>
+      <button class="btn-yellow" id="finalizeBtn" style="width:100%; margin-top:14px;" disabled>이 장소로 최종 확정</button>
+      <div class="note">※ 핫플은 카카오맵 실제 장소 데이터(중심점 반경 800m, 음식점·카페)예요. 소요시간은 직선거리 기반 대략 계산이에요.</div>
     </div>`;
 }
 
 async function setupResultMap(){
   const container = document.getElementById('resultMapBox');
-  if(!container || !window.__resultMapData) return;
+  if(!container) return;
+  const c = window.__resultCenter;
+  if(!c) return;
   try{
     await loadKakaoMaps();
   }catch(e){
@@ -969,16 +951,95 @@ async function setupResultMap(){
     return;
   }
   if(!document.getElementById('resultMapBox')) return;
-  const {center, spots, memberLocs} = window.__resultMapData;
-  const map = new kakao.maps.Map(container, {center: new kakao.maps.LatLng(center.lat, center.lng), level: 6});
-  memberLocs.forEach(loc=>{
+  const map = new kakao.maps.Map(container, {center: new kakao.maps.LatLng(c.lat, c.lng), level: 6});
+  window.__resultMapInstance = map;
+  state.members.forEach(m=>{
+    const loc = state.locations[m.id];
     if(!loc) return;
     new kakao.maps.Marker({position: new kakao.maps.LatLng(loc.lat, loc.lng), map, opacity:0.6});
   });
-  new kakao.maps.Marker({position: new kakao.maps.LatLng(center.lat, center.lng), map});
-  spots.forEach(s=>{
-    new kakao.maps.Marker({position: new kakao.maps.LatLng(s.lat, s.lng), map, title:s.name});
+  new kakao.maps.Marker({position: new kakao.maps.LatLng(c.lat, c.lng), map});
+}
+
+async function loadHotspots(){
+  const listEl = document.getElementById('hotspotList');
+  const c = window.__resultCenter;
+  if(!listEl || !c) return;
+  try{
+    await loadKakaoMaps();
+  }catch(e){
+    listEl.innerHTML = `<div class="note">카카오맵 키가 설정되지 않아 실제 핫플을 불러올 수 없어요.</div>`;
+    return;
+  }
+
+  const places = new kakao.maps.services.Places();
+  const categories = ['FD6', 'CE7']; // 음식점, 카페
+  const collected = [];
+  let pending = categories.length;
+
+  categories.forEach(code=>{
+    places.categorySearch(code, (result, status)=>{
+      pending--;
+      if(status === kakao.maps.services.Status.OK){
+        result.forEach(r=> collected.push({
+          name: r.place_name,
+          lat: parseFloat(r.y),
+          lng: parseFloat(r.x),
+          category: (r.category_name||'').split(' > ').pop(),
+          distanceM: parseFloat(r.distance)
+        }));
+      }
+      if(pending===0) finalizeHotspots(collected);
+    }, {
+      location: new kakao.maps.LatLng(c.lat, c.lng),
+      radius: 800,
+      sort: kakao.maps.services.SortBy.DISTANCE
+    });
   });
+}
+
+function finalizeHotspots(collected){
+  const listEl = document.getElementById('hotspotList');
+  const etaEl = document.getElementById('etaList');
+  if(!listEl) return; // 그 사이 화면이 바뀌었으면 중단
+
+  if(collected.length===0){
+    listEl.innerHTML = `<div class="note">주변 800m 안에서 검색된 장소가 없어요. 위치를 다시 지정해보세요.</div>`;
+    return;
+  }
+
+  const seen = new Set();
+  const spots = collected
+    .filter(s=>{ if(seen.has(s.name)) return false; seen.add(s.name); return true; })
+    .sort((a,b)=>a.distanceM - b.distanceM)
+    .slice(0,5);
+  const top = spots[0];
+
+  window.__finalSpot = top.name;
+
+  listEl.innerHTML = spots.map(s=>`<div class="hotspot"><span>${s.name} <span class="vote-names">${s.category?`(${s.category})`:''}</span></span><span>${s===top?'⭐ 추천':''}</span></div>`).join('');
+
+  if(etaEl){
+    etaEl.innerHTML = `<div style="font-weight:800; margin-bottom:8px; font-size:13px;">${top.name}까지</div>` +
+      state.members.map(m=>{
+        const loc = state.locations[m.id];
+        const km = haversineKm(loc, top);
+        const t = estTimeMin(km, loc.mode);
+        const badge = loc.mode==='transit'
+          ? `<span class="transit-badge subway">🚇</span>` : `<span class="transit-badge car">🚗</span>`;
+        return `<div class="hotspot-member"><span class="who">${badge}${m.name}</span><span>약 ${t}분 (${km.toFixed(1)}km)</span></div>`;
+      }).join('');
+  }
+
+  const finalizeBtn = document.getElementById('finalizeBtn');
+  if(finalizeBtn) finalizeBtn.disabled = false;
+
+  const map = window.__resultMapInstance;
+  if(map){
+    spots.forEach(s=>{
+      new kakao.maps.Marker({position: new kakao.maps.LatLng(s.lat, s.lng), map, title:s.name});
+    });
+  }
 }
 
 /* ---------------- 최종 화면 (티켓 콘셉트) ---------------- */
