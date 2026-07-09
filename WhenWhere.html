@@ -371,6 +371,11 @@ function applySnapshot(data){
   const membersObj = data.members || {};
   state.members = Object.keys(membersObj).map(id => ({id, name: membersObj[id].name}));
 
+  if(myId && roomCode && !state.members.some(m=>m.id===myId)){
+    handleKicked();
+    return;
+  }
+
   // 저장 전(아직 서버에 반영 안 된) 내 로컬 선택은 실시간 갱신으로 덮어쓰지 않도록 보존
   const myLocalAvail = state.availability[myId];
 
@@ -1133,6 +1138,24 @@ function leaveRoom(){
   state.locations = {};
   state.finalSpot = null;
   render();
+}
+
+function handleKicked(){
+  if(roomRef){ roomRef.off(); roomRef = null; }
+  localStorage.removeItem('myRoom');
+  localStorage.removeItem('myName');
+  roomCode = null;
+  myName = null;
+  lastDecisionStatus = null;
+  pendingMode = null;
+  pendingLatLng = null;
+  state.members = [];
+  state.availability = {};
+  state.decision = {status:'pending', date:null, slot:null};
+  state.locations = {};
+  state.finalSpot = null;
+  render();
+  alert('방에서 나가게 됐어요. 필요하면 방 코드를 다시 입력해서 들어와주세요.');
 }
 
 /* ---------------- 시작 ---------------- */
