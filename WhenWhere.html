@@ -111,6 +111,9 @@
     cursor:pointer; position:relative; color:var(--text); gap:3px;
   }
   .cal-day.empty{background:transparent; border-color:transparent; cursor:default;}
+  .cal-day.past{
+    background:transparent; border-color:transparent; cursor:default; opacity:.35;
+  }
   .cal-day.selected{
     border:2px solid var(--coral);
     box-shadow: inset 0 0 0 1px rgba(226,102,90,.25);
@@ -161,6 +164,11 @@
     border:1px solid var(--line);
   }
   .member-chip.you{color:#2f6b4d; border:1px solid var(--mint); background:rgba(143,201,169,.15);}
+  .member-kick{
+    background:none; border:none; padding:0; margin-left:2px; font-size:10px; color:var(--text-dim);
+    cursor:pointer; line-height:1;
+  }
+  .member-kick:hover{color:var(--coral);}
   .vote-row{
     display:flex; justify-content:space-between; align-items:center; padding:8px 0;
     border-bottom:1px solid var(--line); font-size:13px;
@@ -254,6 +262,7 @@
 <div class="wrap" id="app"></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
 /* =====================================================================
@@ -405,6 +414,12 @@ async function joinRoom(code, name){
   localStorage.setItem('myName', name);
   await db.ref(`rooms/${roomCode}/members/${myId}`).set({name});
   startRealtimeListening();
+}
+
+async function removeMember(memberId){
+  await db.ref(`rooms/${roomCode}/members/${memberId}`).remove();
+  await db.ref(`rooms/${roomCode}/avail/${memberId}`).remove();
+  await db.ref(`rooms/${roomCode}/locations/${memberId}`).remove();
 }
 
 /* ---------------- 화면: 방 만들기/입장 ---------------- */
@@ -566,6 +581,7 @@ let calMonthOffset = 0; // 0 = 이번 달, +1 = 다음 달 ...
 function renderCalendarScreen(){
   const app = document.getElementById('app');
   const today = new Date();
+  const todayStr = fmtDate(today);
   const map = tally();
   const bestList = bestSlots(map);
   const bestDates = new Set(bestList.map(k=>k.split('|')[0]));
@@ -583,12 +599,18 @@ function renderCalendarScreen(){
       ${cells.map(c=>{
         if(!c) return `<div class="cal-day empty"></div>`;
         const ds = fmtDate(c);
+        const isPast = ds < todayStr;
         const mine = myAvailability()[ds] || [];
         const dayNames = namesForDate(ds, map);
         const totalMembers = state.members.length || 1;
         const ratio = dayNames.length / totalMembers;
         const heatAlpha = dayNames.length===0 ? 0 : Math.min(0.85, 0.18 + ratio*0.62);
         const chips = mine.map(s=>`<span class="mychip">${s}</span>`).join('');
+        if(isPast){
+          return `<div class="cal-day past">
+            <div>${c.getDate()}</div>
+          </div>`;
+        }
         return `<div class="cal-day ${mine.length? 'selected':''} ${bestDates.has(ds)?'best':''}" data-date="${ds}" style="background-color:rgba(255,159,69,${heatAlpha});">
           <div>${c.getDate()}</div>
           <div class="mychips">${chips}</div>
@@ -609,7 +631,7 @@ function renderCalendarScreen(){
     <div class="sub">날짜를 누르고 시간대(오전/점심/오후)를 선택하세요. 여러 날 선택 가능해요.</div>
     ${bannerHtml}
     <div class="card">
-      <div style="margin-bottom:10px;">참여자: ${state.members.map(m=>`<span class="member-chip ${m.id===myId?'you':''}">${m.name}${m.id===myId?' (나)':''}</span>`).join('')}</div>
+      <div style="margin-bottom:10px;">참여자: ${state.members.map(m=>`<span class="member-chip ${m.id===myId?'you':''}">${m.name}${m.id===myId?' (나)':''}${m.id!==myId?`<button class="member-kick" data-id="${m.id}" data-name="${m.name}" title="내보내기">✕</button>`:''}</span>`).join('')}</div>
       ${monthsHtml}
       <div id="slotPopHolder"></div>
       ${renderMySelectionList()}
@@ -624,6 +646,17 @@ function renderCalendarScreen(){
 
   document.querySelectorAll('.mysel-del').forEach(btn=>{
     btn.onclick = ()=> removeSelection(btn.getAttribute('data-date'), btn.getAttribute('data-slot'));
+  });
+
+  document.querySelectorAll('.member-kick').forEach(btn=>{
+    btn.onclick = (e)=>{
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      const name = btn.getAttribute('data-name');
+      if(confirm(`${name}님을 방에서 내보낼까요?`)){
+        removeMember(id);
+      }
+    };
   });
 
   document.getElementById('prevMonthBtn').onclick = ()=>{
@@ -718,7 +751,10 @@ async function confirmDate(date, slot){
 async function reopenDate(){
   await db.ref(`rooms/${roomCode}/decision`).set({status:'pending', date:null, slot:null});
   await db.ref(`rooms/${roomCode}/finalSpot`).remove();
+  await db.ref(`rooms/${roomCode}/locations`).remove();
   lastDecisionStatus = 'pending';
+  pendingMode = null;
+  pendingLatLng = null;
 }
 
 /* ---------------- 위치 / 지도 화면 (카카오맵) ---------------- */
@@ -970,12 +1006,34 @@ function renderFinalScreen(){
         </div>
       </div>
     </div>
-    <div style="display:flex; justify-content:center;">
+    <div style="display:flex; justify-content:center; gap:8px;">
+      <button class="btn-primary" id="saveTicketBtn" style="width:auto; padding:10px 18px;">🖼️ 이미지로 저장</button>
       <button class="btn-ghost btn-small" id="resetBtn">처음부터 다시</button>
     </div>
   `;
   document.getElementById('resetBtn').onclick = async ()=>{
     await reopenDate();
+  };
+  document.getElementById('saveTicketBtn').onclick = async ()=>{
+    const btn = document.getElementById('saveTicketBtn');
+    const ticketEl = document.querySelector('.ticket');
+    if(!ticketEl || typeof html2canvas === 'undefined'){
+      alert('이미지 저장 기능을 불러오지 못했어요. 화면을 캡처해서 공유해주세요.');
+      return;
+    }
+    btn.disabled = true;
+    btn.innerText = '저장 중...';
+    try{
+      const canvas = await html2canvas(ticketEl, {backgroundColor: null, scale: 2});
+      const link = document.createElement('a');
+      link.download = `WhenWhere_${d.date}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }catch(e){
+      alert('이미지 저장에 실패했어요. 화면을 직접 캡처해서 공유해주세요.');
+    }
+    btn.disabled = false;
+    btn.innerText = '🖼️ 이미지로 저장';
   };
 }
 
