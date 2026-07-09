@@ -366,6 +366,33 @@ function showToast(msg){
   toastTimer = setTimeout(()=> el.classList.remove('show'), 2200);
 }
 
+function getInviteLink(){
+  return `${location.origin}${location.pathname}?room=${roomCode}`;
+}
+
+async function copyToClipboard(text, successMsg){
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast(successMsg);
+  }catch(e){
+    // 클립보드 API가 막혀있는 환경 대비 fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try{
+      document.execCommand('copy');
+      showToast(successMsg);
+    }catch(e2){
+      alert(`복사에 실패했어요. 직접 복사해주세요:\n${text}`);
+    }
+    document.body.removeChild(ta);
+  }
+}
+
 /* ---------------- 상태 ---------------- */
 let myId = null;
 let myName = null;
@@ -453,15 +480,17 @@ async function removeMember(memberId){
 /* ---------------- 화면: 방 만들기/입장 ---------------- */
 function renderJoinScreen(){
   const app = document.getElementById('app');
+  const params = new URLSearchParams(location.search);
+  const prefillCode = (params.get('room') || '').toUpperCase();
   app.innerHTML = `
     <div class="eyebrow">Step 1 · 프로필</div>
     <h1>WhenWhere</h1>
-    <div class="sub">친구들과 같은 방 코드로 접속해서, 되는 날짜와 만날 곳을 함께 정해요.</div>
+    <div class="sub">${prefillCode ? '초대받은 방으로 바로 입장해요. 닉네임만 입력해주세요.' : '친구들과 같은 방 코드로 접속해서, 되는 날짜와 만날 곳을 함께 정해요.'}</div>
     <div class="card">
       <label>닉네임</label>
       <input type="text" id="nameInput" placeholder="닉네임을 입력하세요">
       <label>방 코드 (친구가 만든 코드가 있다면 입력, 없으면 비워두세요)</label>
-      <input type="text" id="codeInput" placeholder="예: A3F9K" style="text-transform:uppercase">
+      <input type="text" id="codeInput" placeholder="예: A3F9K" style="text-transform:uppercase" value="${prefillCode}">
       <button class="btn-primary" id="joinBtn">입장하기</button>
     </div>
     <div class="note">방 코드가 없으면 새 방이 자동으로 만들어져요. 친구들에게 이 코드를 공유하면 같은 화면을 함께 볼 수 있어요.</div>
@@ -658,6 +687,10 @@ function renderCalendarScreen(){
     <div class="eyebrow">Step 2 · 날짜 정하기 · 방 ${roomCode}</div>
     <h1>되는 날 골라주세요</h1>
     <div class="sub">날짜를 누르고 시간대(오전/점심/오후)를 선택하세요. 여러 날 선택 가능해요.</div>
+    <div class="row" style="margin-bottom:14px;">
+      <button class="btn-ghost btn-small" id="copyLinkBtn" style="flex:none;">🔗 초대 링크 복사</button>
+      <button class="btn-ghost btn-small" id="copyCodeBtn" style="flex:none;">방코드 ${roomCode} 복사</button>
+    </div>
     ${bannerHtml}
     <div class="card">
       <div style="margin-bottom:10px;">참여자: ${state.members.map(m=>`<span class="member-chip ${m.id===myId?'you':''}">${m.name}${m.id===myId?' (나)':''}${m.id!==myId?`<button class="member-kick" data-id="${m.id}" data-name="${m.name}" title="내보내기">✕</button>`:''}</span>`).join('')}</div>
@@ -668,6 +701,9 @@ function renderCalendarScreen(){
     </div>
     ${renderDecisionArea(map, bestList)}
   `;
+
+  document.getElementById('copyLinkBtn').onclick = ()=> copyToClipboard(getInviteLink(), '초대 링크가 복사됐어요 🔗');
+  document.getElementById('copyCodeBtn').onclick = ()=> copyToClipboard(roomCode, '방 코드가 복사됐어요');
 
   document.querySelectorAll('.confirm-date-btn').forEach(btn=>{
     btn.onclick = ()=> confirmDate(btn.getAttribute('data-date'), btn.getAttribute('data-slot'));
@@ -829,6 +865,7 @@ function renderLocationScreen(){
         <input type="text" id="addrInput" placeholder="예: 강남역, 제주시청" style="margin-bottom:0;">
         <button class="btn-ghost" id="addrSearchBtn" style="flex:none; width:64px;">검색</button>
       </div>
+      <button class="btn-ghost" id="myLocBtn" style="width:100%; margin-bottom:10px;">📍 현재 위치로</button>
       <div class="map-box" id="mapBox" style="aspect-ratio:auto; height:260px; cursor:default;"></div>
       <div class="row" style="margin-top:12px;">
         <button class="btn-ghost ${pendingMode==='transit'?'mode-on':''}" id="modeTransit">🚇 대중교통</button>
@@ -915,16 +952,41 @@ async function setupLocationMap(){
     myMarker.setMap(map);
   });
 
+  const applyResult = (lat, lng)=>{
+    const latlng = new kakao.maps.LatLng(lat, lng);
+    map.setCenter(latlng);
+    myMarker.setPosition(latlng);
+    myMarker.setMap(map);
+    pendingLatLng = {lat, lng};
+  };
+
+  document.getElementById('myLocBtn').onclick = ()=>{
+    if(!navigator.geolocation){
+      alert('이 브라우저에서는 현재 위치 기능을 지원하지 않아요.');
+      return;
+    }
+    const btn = document.getElementById('myLocBtn');
+    btn.disabled = true;
+    btn.innerText = '위치 확인 중...';
+    navigator.geolocation.getCurrentPosition(
+      (pos)=>{
+        applyResult(pos.coords.latitude, pos.coords.longitude);
+        btn.disabled = false;
+        btn.innerText = '📍 현재 위치로';
+        showToast('현재 위치로 이동했어요');
+      },
+      (err)=>{
+        btn.disabled = false;
+        btn.innerText = '📍 현재 위치로';
+        alert('위치 정보를 가져오지 못했어요. 브라우저 위치 권한을 허용했는지 확인해주세요.');
+      },
+      {enableHighAccuracy:true, timeout:8000}
+    );
+  };
+
   document.getElementById('addrSearchBtn').onclick = ()=>{
     const q = document.getElementById('addrInput').value.trim();
     if(!q) return;
-    const applyResult = (lat, lng)=>{
-      const latlng = new kakao.maps.LatLng(lat, lng);
-      map.setCenter(latlng);
-      myMarker.setPosition(latlng);
-      myMarker.setMap(map);
-      pendingLatLng = {lat, lng};
-    };
     // 1) 장소/건물/역 이름 검색 (예: 강남역, 제주시청)
     const places = new kakao.maps.services.Places();
     places.keywordSearch(q, (result, status)=>{
